@@ -68,13 +68,15 @@ function home(){const t=nextType(),m=weekMin(),kc7=Math.round(S.ss.filter(x=>ago
  $('sb').onclick=()=>{const kg=+$('kg').value,cm=+$('cm').value;if(kg||cm){S.body.push({d:new Date().toISOString(),kg,cm});save();home()}}}
 
 function beep(n){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();for(let i=0;i<n;i++){const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=880;g.gain.value=.2;o.start(ac.currentTime+i*.25);o.stop(ac.currentTime+i*.25+.15)}}catch(e){}
- try{navigator.vibrate&&navigator.vibrate(n*200)}catch(e){}}
+ try{navigator.vibrate&&navigator.vibrate(n*200)}catch(e){}
+ try{const H=HP();if(H)for(let i=0;i<n;i++)setTimeout(()=>{try{H.vibrate({duration:250})}catch(e){}},i*450)}catch(e){}}
+const HP=()=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin('Haptics')}catch(e){return null}};
 
 const LN=()=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin('LocalNotifications')}catch(e){return null}};
-async function sched(w){const L=LN();if(!L)return;try{await L.requestPermissions();await L.createChannel({id:'fasi',name:'Cambio fase',importance:5,vibration:true,visibility:1});
+async function sched(w){const L=LN();if(!L)return;try{await L.requestPermissions();await L.createChannel({id:'fasi2',name:'Cambio fase',importance:5,vibration:true,visibility:1});
  const pe=await L.getPending();if(pe&&pe.notifications&&pe.notifications.length)await L.cancel({notifications:pe.notifications.map(x=>({id:x.id}))});
- const ns=[];let c=0;w.segs.forEach((g,i)=>{if(i>0){const at=w.t0+c*1000;if(at>Date.now()+1500)ns.push({id:1000+i,title:g.n,body:'Cambio fase',schedule:{at:new Date(at),allowWhileIdle:true},channelId:'fasi'})}c+=g.s});
- const at=w.t0+c*1000;if(at>Date.now()+1500)ns.push({id:1999,title:'Programma completato',body:'Puoi continuare: l\'app sta ancora registrando.',schedule:{at:new Date(at),allowWhileIdle:true},channelId:'fasi'});
+ const ns=[];let c=0;w.segs.forEach((g,i)=>{if(i>0){const at=w.t0+c*1000;if(at>Date.now()+1500)ns.push({id:1000+i,title:g.n,body:'Cambio fase',schedule:{at:new Date(at),allowWhileIdle:true},channelId:'fasi2'})}c+=g.s});
+ const at=w.t0+c*1000;if(at>Date.now()+1500)ns.push({id:1999,title:'Programma completato',body:'Puoi continuare: l\'app sta ancora registrando.',schedule:{at:new Date(at),allowWhileIdle:true},channelId:'fasi2'});
  if(ns.length)await L.schedule({notifications:ns})}catch(e){}}
 async function unsched(){const L=LN();if(!L)return;try{const pe=await L.getPending();if(pe&&pe.notifications&&pe.notifications.length)await L.cancel({notifications:pe.notifications.map(x=>({id:x.id}))});await L.removeAllDeliveredNotifications()}catch(e){}}
 function recalc(){const lc=[...S.ss].reverse().find(x=>x.type==='cardio'),lo=[...S.ss].reverse().find(x=>x.type==='core');S.level=lc?(lc.lvn!=null?lc.lvn:lc.lv):0;S.hold=lo?(lo.hn!=null?lo.hn:S.hold):20;S.msg='Piano ricalcolato dopo la modifica dello storico.'}
@@ -117,17 +119,8 @@ function fb(){A.innerHTML=`<h1>${W.done?'Ben fatto!':'Sessione interrotta'}</h1>
   s.lvn=S.level;s.hn=S.hold;S.active=null;save();W=null;home()}}
 function hist(){const rows=S.ss.map((s,i)=>Object.assign({i},s)).reverse().map(s=>`<tr><td>${new Date(s.d).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</td><td>${s.type==='cardio'?'Cardio L'+(s.lv+1):'Core'}</td><td>${Math.round(s.dur/60)}'</td><td>${s.dist?(s.dist/1000).toFixed(2):'–'}</td><td>${s.rpe}${s.pain?' ⚠':''}</td><td>${s.kcal||'–'}</td><td><button class="s" data-del="${s.i}" style="width:auto;padding:4px 8px;margin:0">✕</button></td></tr>`).join('');
  const bd=S.body.slice().reverse().map(b=>`<tr><td>${new Date(b.d).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</td><td>${b.kg||'–'} kg</td><td>${b.cm||'–'} cm</td></tr>`).join('');
- A.innerHTML=`<h1>Storico</h1><div class="c"><table><tr><th>Data</th><th>Tipo</th><th>Durata</th><th>Km</th><th>Sforzo</th><th>Kcal</th><th></th></tr>${rows||'<tr><td colspan=7 class="mu">Nessuna sessione</td></tr>'}</table></div><div class="c"><table>${bd||'<tr><td class="mu">Nessuna misura</td></tr>'}</table></div><button class="s" id="bk">Indietro</button>`;$('bk').onclick=home}
-function chart(t,pts,o={}){if(pts.length<2)return `<div class="c"><h2>${t}</h2><div class="mu">Servono almeno 2 dati per il grafico.</div></div>`;
- const w=320,h=140,p=26,vs=pts.map(x=>x.v),mn=o.bar?0:(o.min!=null?o.min:Math.min(...vs)-1),mx=Math.max(...vs,o.ref||0)+(o.bar?0:1),rg=(mx-mn)||1,n=pts.length;
- const Y=v=>h-p-(v-mn)/rg*(h-2*p),X=i=>o.bar?p+(i+.5)*(w-2*p)/n:p+i*(w-2*p)/(n-1);
- let g=`<line x1="${p}" x2="${w-p}" y1="${h-p}" y2="${h-p}" style="stroke:var(--ln)"/>`;
- if(o.ref)g+=`<line x1="${p}" x2="${w-p}" y1="${Y(o.ref)}" y2="${Y(o.ref)}" stroke-dasharray="4" style="stroke:var(--wa)"/><text x="${w-p}" y="${Y(o.ref)-3}" text-anchor="end" font-size="9" style="fill:var(--wa)">obiettivo ${o.ref}</text>`;
- if(o.bar){const bw=(w-2*p)/n*.65;pts.forEach((q,i)=>g+=`<rect x="${X(i)-bw/2}" y="${Y(q.v)}" width="${bw}" height="${h-p-Y(q.v)}" rx="3" style="fill:var(--ac)"/><text x="${X(i)}" y="${Y(q.v)-3}" text-anchor="middle" font-size="9" style="fill:var(--tx)">${q.v}</text>`)}
- else{g+=`<polyline fill="none" stroke-width="2.5" points="${pts.map((q,i)=>X(i)+','+Y(q.v)).join(' ')}" style="stroke:var(--ac)"/>`;pts.forEach((q,i)=>g+=`<circle cx="${X(i)}" cy="${Y(q.v)}" r="3.5" style="fill:var(--ac)"/>`+((n<=8||i==n-1||i==0)?`<text x="${X(i)}" y="${Y(q.v)-7}" text-anchor="middle" font-size="9" style="fill:var(--tx)">${q.v}</text>`:''))}
- pts.forEach((q,i)=>{if(n<=8||i==0||i==n-1)g+=`<text x="${X(i)}" y="${h-8}" text-anchor="middle" font-size="9" style="fill:var(--mu)">${q.l}</text>`});
- let tr='';if(!o.bar){const d=vs[n-1]-vs[0],good=o.low?d<0:d>0;tr=d===0?'stabile':`<b style="color:${good?'var(--ac)':'var(--wa)'}">${d>0?'+':''}${Math.round(d*10)/10}${o.u||''} dall'inizio</b>`}
- return `<div class="c"><h2>${t}</h2><svg viewBox="0 0 ${w} ${h}" width="100%">${g}</svg><div class="mu">${tr}</div></div>`}
+ A.innerHTML=`<h1>Storico</h1><div class="c"><table><tr><th>Data</th><th>Tipo</th><th>Durata</th><th>Km</th><th>Sforzo</th><th>Kcal</th><th></th></tr>${rows||'<tr><td colspan=7 class="mu">Nessuna sessione</td></tr>'}</table></div><div class="c"><table>${bd||'<tr><td class="mu">Nessuna misura</td></tr>'}</table></div><div class="mu">Con ✕ elimini una sessione sbagliata (tocca due volte): il piano viene ricalcolato sulle sessioni rimaste.</div><button class="s" id="bk">Indietro</button>`;$('bk').onclick=home;
+ document.querySelectorAll('[data-del]').forEach(b=>{let q=0;b.onclick=()=>{if(!q){q=1;b.textContent='Sicuro?';setTimeout(()=>{q=0;b.textContent='✕'},4000)}else{S.ss.splice(+b.dataset.del,1);recalc();save();hist()}}})}
 function prog(){const dl=d=>new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'numeric'});
  const wk=[];for(let k=7;k>=0;k--)wk.push({l:k?'-'+k+'s':'ora',v:Math.round(S.ss.filter(x=>Math.floor(ago(x.d)/7)===k).reduce((a,x)=>a+x.dur,0)/60)});
  const wk2=wk.map((x,i)=>({l:x.l,v:Math.round(S.ss.filter(y=>Math.floor(ago(y.d)/7)===7-i).reduce((a,y)=>a+(y.kcal||0),0))}));
@@ -139,8 +132,7 @@ function prog(){const dl=d=>new Date(d).toLocaleDateString('it-IT',{day:'numeric
  +chart('Passo medio della sessione (min/km, più basso = meglio)',cs.filter(x=>x.dist>300).map(x=>({l:dl(x.d),v:Math.round(x.dur/60/(x.dist/1000)*10)/10})),{low:1,u:' min/km'})
  +chart('Peso (kg)',bw.map(b=>({l:dl(b.d),v:b.kg})),{low:1,u:' kg'})
  +chart('Girovita (cm)',bc.map(b=>({l:dl(b.d),v:b.cm})),{low:1,u:' cm'})
- +`<div class="c mu"><h2>E il grasso del fegato?</h2>Nessuna app può misurarlo: lo valutano ecografia o elastografia e gli esami che decide il medico. Qui vedi indicatori indiretti che lo influenzano: minuti di attività (150 a settimana), girovita e peso. Le calorie sono stime basate sul tuo peso e sul tipo di attività (margine di errore anche del 20-30%) e non indicano quanto grasso consumi.</div><div class="mu">Con ✕ elimini una sessione sbagliata (tocca due volte): il piano viene ricalcolato sulle sessioni rimaste.</div><button class="s" id="bk">Indietro</button>`;$('bk').onclick=home;
- document.querySelectorAll('[data-del]').forEach(b=>{let q=0;b.onclick=()=>{if(!q){q=1;b.textContent='Sicuro?';setTimeout(()=>{q=0;b.textContent='✕'},4000)}else{S.ss.splice(+b.dataset.del,1);recalc();save();hist()}}})}
+ +`<div class="c mu"><h2>E il grasso del fegato?</h2>Nessuna app può misurarlo: lo valutano ecografia o elastografia e gli esami che decide il medico. Qui vedi indicatori indiretti che lo influenzano: minuti di attività (150 a settimana), girovita e peso. Le calorie sono stime basate sul tuo peso e sul tipo di attività (margine di errore anche del 20-30%) e non indicano quanto grasso consumi.</div><button class="s" id="bk">Indietro</button>`;$('bk').onclick=home;}
 function setup(){const ld=i=>LV[i][0]?`${LV[i][2]}× (${mmss(LV[i][0])} corsa + ${mmss(LV[i][1])} cammino)`:'30 min di camminata veloce';
  const pc=S.pace||'normale';
  A.innerHTML=`<h1>Piano e dati</h1>
