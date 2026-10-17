@@ -129,6 +129,16 @@ function hist(){if(!document.getElementById('app'))return;const rows=S.ss.map((s
  if($('eok'))$('eok').onclick=()=>{const x=S.body[be];if(x){x.kg=+$('ek').value||0;x.cm=+$('ec').value||0}be=-1;save();hist()};
  document.querySelectorAll('[data-bd]').forEach(b=>{let q=0;b.onclick=()=>{if(!q){q=1;b.textContent='Sicuro?';setTimeout(()=>{q=0;b.textContent='✕'},4000)}else{S.body.splice(+b.dataset.bd,1);be=-1;save();hist()}}});
  document.querySelectorAll('[data-del]').forEach(b=>{let q=0;b.onclick=()=>{if(!q){q=1;b.textContent='Sicuro?';setTimeout(()=>{q=0;b.textContent='✕'},4000)}else{S.ss.splice(+b.dataset.del,1);recalc();save();hist()}}})}
+function chart(t,pts,o={}){if(pts.length<2)return `<div class="c"><h2>${t}</h2><div class="mu">Servono almeno 2 dati per il grafico.</div></div>`;
+ const w=320,h=140,p=26,vs=pts.map(x=>x.v),mn=o.bar?0:(o.min!=null?o.min:Math.min(...vs)-1),mx=Math.max(...vs,o.ref||0)+(o.bar?0:1),rg=(mx-mn)||1,n=pts.length;
+ const Y=v=>h-p-(v-mn)/rg*(h-2*p),X=i=>o.bar?p+(i+.5)*(w-2*p)/n:p+i*(w-2*p)/(n-1);
+ let g=`<line x1="${p}" x2="${w-p}" y1="${h-p}" y2="${h-p}" style="stroke:var(--ln)"/>`;
+ if(o.ref)g+=`<line x1="${p}" x2="${w-p}" y1="${Y(o.ref)}" y2="${Y(o.ref)}" stroke-dasharray="4" style="stroke:var(--wa)"/><text x="${w-p}" y="${Y(o.ref)-3}" text-anchor="end" font-size="9" style="fill:var(--wa)">obiettivo ${o.ref}</text>`;
+ if(o.bar){const bw=(w-2*p)/n*.65;pts.forEach((q,i)=>g+=`<rect x="${X(i)-bw/2}" y="${Y(q.v)}" width="${bw}" height="${h-p-Y(q.v)}" rx="3" style="fill:var(--ac)"/><text x="${X(i)}" y="${Y(q.v)-3}" text-anchor="middle" font-size="9" style="fill:var(--tx)">${q.v}</text>`)}
+ else{g+=`<polyline fill="none" stroke-width="2.5" points="${pts.map((q,i)=>X(i)+','+Y(q.v)).join(' ')}" style="stroke:var(--ac)"/>`;pts.forEach((q,i)=>g+=`<circle cx="${X(i)}" cy="${Y(q.v)}" r="3.5" style="fill:var(--ac)"/>`+((n<=8||i==n-1||i==0)?`<text x="${X(i)}" y="${Y(q.v)-7}" text-anchor="middle" font-size="9" style="fill:var(--tx)">${q.v}</text>`:''))}
+ pts.forEach((q,i)=>{if(n<=8||i==0||i==n-1)g+=`<text x="${X(i)}" y="${h-8}" text-anchor="middle" font-size="9" style="fill:var(--mu)">${q.l}</text>`});
+ let tr='';if(!o.bar){const d=vs[n-1]-vs[0],good=o.low?d<0:d>0;tr=d===0?'stabile':`<b style="color:${good?'var(--ac)':'var(--wa)'}">${d>0?'+':''}${Math.round(d*10)/10}${o.u||''} dall'inizio</b>`}
+ return `<div class="c"><h2>${t}</h2><svg viewBox="0 0 ${w} ${h}" width="100%">${g}</svg><div class="mu">${tr}</div></div>`}
 function prog(){const dl=d=>new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'numeric'});
  const wk=[];for(let k=7;k>=0;k--)wk.push({l:k?'-'+k+'s':'ora',v:Math.round(S.ss.filter(x=>Math.floor(ago(x.d)/7)===k).reduce((a,x)=>a+x.dur,0)/60)});
  const wk2=wk.map((x,i)=>({l:x.l,v:Math.round(S.ss.filter(y=>Math.floor(ago(y.d)/7)===7-i).reduce((a,y)=>a+(y.kcal||0),0))}));
