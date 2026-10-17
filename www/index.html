@@ -50,17 +50,18 @@ let selT=null;let be=-1;
 function nextType(){if(selT)return selT;const l=S.ss[S.ss.length-1];return l?l.type:'cardio'}
 function cardioSegs(){const[r,w,n]=LV[S.level];const g=[{n:'RISCALDAMENTO: cammina a passo tranquillo',s:300,k:'w'}];
  if(!r)g.push({n:'CORPO: cammina veloce',s:1200,k:'w'});for(let i=0;i<n;i++){g.push({n:'CORPO: CORRI piano',s:r,k:'r'});g.push({n:'Cammina (recupero)',s:w,k:'w'})}
+ {const tot=g.reduce((a,x)=>a+x.s,0)+300,md=(S.minDur||0)*60;if(md>tot)g.push({n:'CORPO: cammina veloce (extra)',s:md-tot,k:'w'})}
  g.push({n:'DEFATICAMENTO: rallenta piano',s:300,k:'w'});return g}
 function coreSegs(){const g=[];for(let r=0;r<2;r++)EX.forEach(e=>{g.push({n:e,s:S.hold,k:'r'});g.push({n:'Riposo',s:20,k:'w'})});return g}
 
 function home(){const t=nextType(),m=weekMin(),kc7=Math.round(S.ss.filter(x=>ago(x.d)<7).reduce((a,x)=>a+(x.kcal||0),0)),pf=S.prof||{},bw=(S.body.filter(x=>x.kg).pop()||{}).kg,bc=(S.body.filter(x=>x.cm).pop()||{}).cm,bmr=pf.h&&pf.age&&pf.sex&&bw?Math.round(10*bw+6.25*pf.h-5*pf.age+(pf.sex==='M'?5:-161)):0,last=S.ss[S.ss.length-1];
- const [r,w,n]=LV[S.level],N=Math.floor(ago(S.start)/7)+1,tg=Math.min(150,80+10*N),b=S.body[S.body.length-1];
+ const [r,w,n]=LV[S.level],N=Math.floor(ago(S.start)/7)+1,tg=Math.min(S.tgMax||150,(S.tg0||90)+(S.tgs!=null?S.tgs:10)*(N-1)),cm=Math.round(cardioSegs().reduce((a,x)=>a+x.s,0)/60),b=S.body[S.body.length-1];
  A.innerHTML=`<h1>Il mio allenamento</h1>
- <div class="c"><h2>Programma di ripresa · settimana ${N}</h2><div class="bar"><i style="width:${Math.min(100,m/tg*100)}%"></i></div><div class="mu">${m} min su ${tg} questa settimana. Si sale gradualmente fino a 150 min (soglia utile per colesterolo e fegato grasso). Schema: 3 cardio + 2 core, con almeno un giorno di riposo tra i cardio.<br>Calorie stimate negli ultimi 7 giorni: <b>${kc7}</b>${S.body.some(b=>b.kg)?'':' (inserisci il peso per calcolarle)'}.</div></div>
+ <div class="c"><h2>Programma di ripresa · settimana ${N}</h2><div class="bar"><i style="width:${Math.min(100,m/tg*100)}%"></i></div><div class="mu">${m} min su ${tg} questa settimana. Obiettivo che sale gradualmente fino a ${S.tgMax||150} min (150 è la soglia minima utile per colesterolo e fegato grasso). Puoi cambiarlo in «Piano e dati». Schema: 3 cardio + 2 core, con almeno un giorno di riposo tra i cardio.<br>Calorie stimate negli ultimi 7 giorni: <b>${kc7}</b>${S.body.some(b=>b.kg)?'':' (inserisci il peso per calcolarle)'}.</div></div>
  <div class="c"><h2>Metabolismo</h2><div class="mu">${bmr?`Basale stimato: <b>${bmr} kcal/giorno</b> (a riposo). Fabbisogno giornaliero stimato: <b>${Math.round(bmr*1.2+kc7/7)} kcal</b>, con la tua attività recente.${bc?` Girovita/altezza: <b>${(bc/pf.h).toFixed(2)}</b> (obiettivo sotto 0,50).`:''}`:'Per calcolarlo servono sesso, altezza e peso: completa il profilo in "Piano e dati" e salva il peso qui sotto.'}</div></div>
  <div class="r" style="margin-bottom:12px"><button class="${t==='cardio'?'':'s'}" data-t="cardio" style="padding:16px 8px"><span style="font-size:30px;display:block">🚶‍♂️🏃</span>Camminata<br>e corsa</button><button class="${t==='core'?'':'s'}" data-t="core" style="padding:16px 8px"><span style="font-size:30px;display:block">🧘</span>Core<br>addominali</button></div>
  <div class="c"><h2>${t==='cardio'?'Camminata + corsa a intervalli':'Core: addominali e schiena'}</h2>
- <div class="mu">${t==='cardio'?r?`Livello ${S.level+1}/${LV.length}: 5' cammino, poi ${n}× (${mmss(r)} corsa lenta + ${mmss(w)} cammino), 5' defaticamento. Totale ~${Math.round((600+n*(r+w))/60)} min. Ritmo: devi riuscire a parlare.`:`Livello 1/${LV.length}: 30 min di camminata veloce (5' riscaldamento, 20' a passo sostenuto, 5' defaticamento) per riprendere dopo la pausa estiva.`:`2 giri di 6 esercizi sicuri per la schiena, ${S.hold}s ciascuno con 20s di riposo. Respira, schiena neutra.`}</div>
+ <div class="mu">${t==='cardio'?r?`Livello ${S.level+1}/${LV.length}: 5' cammino, poi ${n}× (${mmss(r)} corsa lenta + ${mmss(w)} cammino), 5' defaticamento. Totale ~${cm} min. Ritmo: devi riuscire a parlare.`:`Livello 1/${LV.length}: ${cm} min di camminata veloce (5' riscaldamento, ${cm-10}' a passo sostenuto, 5' defaticamento).`:`2 giri di 6 esercizi sicuri per la schiena, ${S.hold}s ciascuno con 20s di riposo. Respira, schiena neutra.`}</div>
  <button id="go">Inizia</button></div>
  ${last?`<div class="c mu"><b>Ultima volta:</b> ${last.type==='cardio'?'cardio':'core'}, ${Math.round(last.dur/60)} min, sforzo ${last.rpe}/10${last.pain?', dolore alla schiena':''}. ${S.msg||''}</div>`:''}
  <div class="c"><h2>Peso e vita</h2><div class="r"><input id="kg" type="number" step="0.1" placeholder="kg"><input id="cm" type="number" step="0.5" placeholder="vita cm"></div><button class="s" id="sb">Salva misure</button><div class="mu">${b?`Ultime: ${b.kg||'–'} kg, vita ${b.cm||'–'} cm`:''}</div></div>
@@ -87,7 +88,7 @@ async function sched(w){const L=LN();if(!L)return;try{await L.requestPermissions
  const at=w.t0+c*1000;if(at>Date.now()+1500)ns.push({id:1999,title:'Programma completato',body:'Puoi continuare: l\'app sta ancora registrando.',schedule:{at:new Date(at),allowWhileIdle:true},channelId:'fasi2'});
  if(ns.length)await L.schedule({notifications:ns})}catch(e){}}
 async function unsched(){const L=LN();if(!L)return;try{const pe=await L.getPending();if(pe&&pe.notifications&&pe.notifications.length)await L.cancel({notifications:pe.notifications.map(x=>({id:x.id}))});await L.removeAllDeliveredNotifications()}catch(e){}}
-function recalc(){const lc=[...S.ss].reverse().find(x=>x.type==='cardio'),lo=[...S.ss].reverse().find(x=>x.type==='core');S.level=lc?(lc.lvn!=null?lc.lvn:lc.lv):0;S.hold=lo?(lo.hn!=null?lo.hn:S.hold):20;S.msg='Piano ricalcolato dopo la modifica dello storico.'}
+function recalc(){const lc=[...S.ss].reverse().find(x=>x.type==='cardio'),lo=[...S.ss].reverse().find(x=>x.type==='core');S.level=lc?(lc.lvn!=null?lc.lvn:lc.lv):(S.lv0||0);S.hold=lo?(lo.hn!=null?lo.hn:S.hold):20;S.msg='Piano ricalcolato dopo la modifica dello storico.'}
 function start(type,a){const segs=a?a.segs:(type==='cardio'?cardioSegs():coreSegs());
  W={type,segs,tot:segs.reduce((a,s)=>a+s.s,0),t0:a?a.t0:Date.now(),idx:-1,dist:a?a.dist:0,last:null,gps:a?!!a.gps:false,fx:a?a.fx||0:0,stop:false};sched(W);
  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
@@ -158,6 +159,14 @@ function prog(){const dl=d=>new Date(d).toLocaleDateString('it-IT',{day:'numeric
 function setup(){const ld=i=>LV[i][0]?`${LV[i][2]}× (${mmss(LV[i][0])} corsa + ${mmss(LV[i][1])} cammino)`:'30 min di camminata veloce';
  const pc=S.pace||'normale';
  A.innerHTML=`<h1>Piano e dati</h1>
+ <div class="c"><h2>Il tuo livello di partenza</h2><div class="mu">Scegli da dove partire (puoi cambiarlo quando vuoi): poi il piano si adatta ai tuoi risultati.</div>
+ <button class="s" id="lv1">Principiante<br><span class="mu">cammino 30 min, obiettivo 90 min</span></button><button class="s" id="lv2">Leggermente allenato<br><span class="mu">corsa a intervalli, sessioni di almeno 40 min, obiettivo 120 min</span></button><button class="s" id="lv3">Allenato<br><span class="mu">intervalli più lunghi, sessioni di almeno 45 min, obiettivo 150 min</span></button></div>
+ <div class="c"><h2>Obiettivo settimanale</h2><div class="mu">Prima settimana: <b>${S.tg0||90} min</b> · aumento: <b>${S.tgs!=null?S.tgs:10} min</b> a settimana · massimo: <b>${S.tgMax||150} min</b></div>
+ <div class="r" style="margin-top:6px"><button class="s" id="t0d">− prima sett.</button><button class="s" id="t0u">+ prima sett.</button></div>
+ <div class="r"><button class="s" id="tsd">− aumento</button><button class="s" id="tsu">+ aumento</button></div>
+ <div class="r"><button class="s" id="tmd">− massimo</button><button class="s" id="tmu">+ massimo</button></div>
+ <div class="mu" style="margin-top:8px">Durata minima di ogni sessione cardio: <b>${S.minDur?S.minDur+' min':'come da piano'}</b>. Se il piano prevede meno, aggiunge camminata veloce.</div>
+ <div class="r"><button class="s" id="mdd">− 5 min</button><button class="s" id="mdu">+ 5 min</button></div></div>
  <div class="c"><h2>Profilo (per il metabolismo)</h2><div class="r"><button class="${(S.prof||{}).sex==='M'?'':'s'}" id="sx1">Uomo</button><button class="${(S.prof||{}).sex==='F'?'':'s'}" id="sx2">Donna</button></div><div class="r" style="margin-top:8px"><input id="ph" type="number" placeholder="altezza cm" value="${(S.prof||{}).h||''}"><input id="pa" type="number" placeholder="età" value="${(S.prof||{}).age||59}"></div><button class="s" id="ps">Salva profilo</button><div class="mu" id="psm"></div></div>
  <div class="c"><h2>Cardio: livello ${S.level+1} di ${LV.length}</h2><div class="mu">${ld(S.level)}</div><div class="r"><button class="s" id="ld">− Più facile</button><button class="s" id="lu">Più difficile +</button></div><div class="mu">Da qui in poi il piano continua a adattarsi alle tue prestazioni.</div></div>
  <div class="c"><h2>Core: tenuta ${S.hold} secondi</h2><div class="r"><button class="s" id="hd">− 5 s</button><button class="s" id="hu">+ 5 s</button></div></div>
@@ -169,6 +178,13 @@ function setup(){const ld=i=>LV[i][0]?`${LV[i][2]}× (${mmss(LV[i][0])} corsa + 
  <div class="c"><h2>Ricomincia</h2><div class="mu">Nuovo programma: riparte dalla settimana 1 e dal livello 1, ma conserva storico e misure. Cancella tutto: elimina anche quelli (fai prima un'esportazione).</div><button class="s" id="r1">Nuovo programma (tieni lo storico)</button><button class="s" id="r2">Cancella tutto e riparti da zero</button></div>
  <button class="s" id="bk">Indietro</button>`;
  const ch=f=>()=>{f();save();setup()};
+ const pr=(l,t0,md,mx)=>ch(()=>{S.level=l;S.lv0=l;S.tg0=t0;S.tgs=10;S.minDur=md;S.tgMax=mx});
+ $('lv1').onclick=pr(0,90,0,150);$('lv2').onclick=pr(4,120,40,150);$('lv3').onclick=pr(7,150,45,200);
+ const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+ $('t0d').onclick=ch(()=>S.tg0=cl((S.tg0||90)-10,30,300));$('t0u').onclick=ch(()=>S.tg0=cl((S.tg0||90)+10,30,300));
+ $('tsd').onclick=ch(()=>S.tgs=cl((S.tgs!=null?S.tgs:10)-5,0,30));$('tsu').onclick=ch(()=>S.tgs=cl((S.tgs!=null?S.tgs:10)+5,0,30));
+ $('tmd').onclick=ch(()=>S.tgMax=cl((S.tgMax||150)-50,90,300));$('tmu').onclick=ch(()=>S.tgMax=cl((S.tgMax||150)+50,90,300));
+ $('mdd').onclick=ch(()=>S.minDur=(S.minDur||0)<=30?0:S.minDur-5);$('mdu').onclick=ch(()=>S.minDur=(S.minDur||0)<30?30:Math.min(90,S.minDur+5));
  S.prof=S.prof||{age:59};const pu=()=>{S.prof.h=+$('ph').value||S.prof.h;S.prof.age=+$('pa').value||S.prof.age};
  $('sx1').onclick=ch(()=>{pu();S.prof.sex='M'});$('sx2').onclick=ch(()=>{pu();S.prof.sex='F'});$('ps').onclick=()=>{pu();if(!S.prof.sex||!S.prof.h){$('psm').textContent='Scegli Uomo o Donna e scrivi l\'altezza.';return}save();home()};
  $('ld').onclick=ch(()=>S.level=Math.max(0,S.level-1));$('lu').onclick=ch(()=>S.level=Math.min(LV.length-1,S.level+1));
