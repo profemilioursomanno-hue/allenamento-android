@@ -75,7 +75,11 @@ function beep(n){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)
 const HP=()=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin('Haptics')}catch(e){return null}};
 
 const LN=()=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin('LocalNotifications')}catch(e){return null}};
-async function exact(force){const L=LN();if(!L)return;try{const r=await L.checkExactNotificationSetting();if(r&&r.exact_alarm&&r.exact_alarm!=='granted'&&(force||!S.exAsked)){S.exAsked=1;save();await L.changeExactNotificationSetting()}}catch(e){}}
+async function exact(force,out){const L=LN();if(!L){if(out)out("Funziona solo nell'app installata sul telefono.");return}
+ try{const r=await L.checkExactNotificationSetting();const st=r&&r.exact_alarm;
+  if(st==='granted'){if(out)out('Allarmi esatti: già consentiti ✓. Se gli avvisi a schermo spento arrivano in ritardo, controlla anche Impostazioni › App › Allenamento › Batteria: «Senza restrizioni».');return}
+  if(force||!S.exAsked){S.exAsked=1;save();if(out)out('Si apre la schermata di Android: attiva il permesso per Allenamento e torna qui.');await L.changeExactNotificationSetting()}
+ }catch(e){if(out)out('Non riesco ad aprire la schermata ('+((e&&e.message)||e)+'). Vai a mano: Impostazioni › App › Allenamento, cerca «Allarmi e promemoria» (oppure Impostazioni › App › ⋮ › Accesso speciale › Allarmi e promemoria) e attivalo.')}}
 async function nfb(i){const L=LN();if(!L||!W)return;try{const d=await L.getDeliveredNotifications();if(d&&d.notifications&&d.notifications.some(x=>x.id===1000+i))return;await L.schedule({notifications:[{id:1000+i,title:W.segs[i].n,body:'Cambio fase',schedule:{at:new Date(Date.now()+300),allowWhileIdle:true},channelId:'fasi2'}]})}catch(e){}}
 async function sched(w){const L=LN();if(!L)return;try{await L.requestPermissions();await exact(false);await L.createChannel({id:'fasi2',name:'Cambio fase',importance:5,vibration:true,visibility:1});
  const pe=await L.getPending();if(pe&&pe.notifications&&pe.notifications.length)await L.cancel({notifications:pe.notifications.map(x=>({id:x.id}))});
@@ -158,8 +162,8 @@ function setup(){const ld=i=>LV[i][0]?`${LV[i][2]}× (${mmss(LV[i][0])} corsa + 
  <div class="c"><h2>Cardio: livello ${S.level+1} di ${LV.length}</h2><div class="mu">${ld(S.level)}</div><div class="r"><button class="s" id="ld">− Più facile</button><button class="s" id="lu">Più difficile +</button></div><div class="mu">Da qui in poi il piano continua a adattarsi alle tue prestazioni.</div></div>
  <div class="c"><h2>Core: tenuta ${S.hold} secondi</h2><div class="r"><button class="s" id="hd">− 5 s</button><button class="s" id="hu">+ 5 s</button></div></div>
  <div class="c"><h2>Velocità di progressione</h2><div class="mu">Il livello sale se completi la sessione senza dolore e con sforzo entro: prudente 5, normale 6, veloce 7 (su 10).</div><div class="r">${['prudente','normale','veloce'].map(k=>`<button class="${pc===k?'':'s'}" data-p="${k}">${k}</button>`).join('')}</div></div>
- <div class="c"><h2>Avvisi a schermo spento</h2><div class="mu">Per avere gli avvisi puntuali a schermo spento, Android deve consentire alla app gli "allarmi e promemoria". Tocca il pulsante e attiva l'opzione per Allenamento.</div><button class="s" id="exb">Controlla permesso allarmi</button></div>
- <div class="c"><h2>Copia dei dati</h2><button id="ex">Esporta dati (file)</button>
+ <div class="c"><h2>Avvisi a schermo spento</h2><div class="mu">Per avere gli avvisi puntuali a schermo spento, Android deve consentire alla app gli "allarmi e promemoria". Tocca il pulsante e attiva l'opzione per Allenamento.</div><button class="s" id="exb">Controlla permesso allarmi</button><div class="mu" id="exm" style="margin-top:6px"></div></div>
+ <div class="c"><h2>Copia dei dati (consigliata prima di ogni aggiornamento)</h2><button id="ex">Esporta dati (file)</button>
  <textarea id="ta" rows="4" placeholder="Per ripristinare: scegli il file o incolla qui il contenuto, poi premi Importa" style="margin-top:8px"></textarea>
  <input type="file" id="fl" accept=".json,.txt" style="margin-top:6px"><button class="s" id="im">Importa</button><div class="mu" id="msg"></div></div>
  <div class="c"><h2>Ricomincia</h2><div class="mu">Nuovo programma: riparte dalla settimana 1 e dal livello 1, ma conserva storico e misure. Cancella tutto: elimina anche quelli (fai prima un'esportazione).</div><button class="s" id="r1">Nuovo programma (tieni lo storico)</button><button class="s" id="r2">Cancella tutto e riparti da zero</button></div>
@@ -170,17 +174,22 @@ function setup(){const ld=i=>LV[i][0]?`${LV[i][2]}× (${mmss(LV[i][0])} corsa + 
  $('ld').onclick=ch(()=>S.level=Math.max(0,S.level-1));$('lu').onclick=ch(()=>S.level=Math.min(LV.length-1,S.level+1));
  $('hd').onclick=ch(()=>S.hold=Math.max(15,S.hold-5));$('hu').onclick=ch(()=>S.hold=Math.min(60,S.hold+5));
  document.querySelectorAll('[data-p]').forEach(b=>b.onclick=ch(()=>S.pace=b.dataset.p));
- $('bk').onclick=home;$('exb').onclick=()=>exact(true);
+ $('bk').onclick=home;$('exb').onclick=()=>exact(true,t=>{$('exm').textContent=t});
  const two=(id,txt,f)=>{const b=$(id);let a=0;b.onclick=()=>{if(!a){a=1;b.textContent='Tocca ancora per confermare';setTimeout(()=>{a=0;b.textContent=txt},4000)}else f()}};
  two('r1','Nuovo programma (tieni lo storico)',()=>{S.level=0;S.hold=20;S.start=new Date().toISOString();S.msg='';save();home()});
  two('r2','Cancella tutto e riparti da zero',()=>{S={level:0,hold:20,ss:[],body:[],v:2,start:new Date().toISOString()};save();home()});
  $('fl').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>$('ta').value=r.result;r.readAsText(f)};
- $('ex').onclick=async()=>{const js=JSON.stringify(S,null,1);let d=null;
-  try{d=window.claude&&await claude.use('downloads')}catch(e){}
-  const fb=()=>{$('ta').value=js;$('ta').select();$('msg').textContent='Copia questo testo e conservalo in una nota: per ripristinare incollalo qui e premi Importa.'};
-  if(!d&&window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){fb();return}
-  if(!d){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([js],{type:'application/json'}));a.download='allenamento-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();$('ta').value=js;$('msg').textContent='File scaricato. Se non lo trovi, copia il testo qui sopra.'}catch(e){fb()}return}
-  try{await d.save({filename:'allenamento-'+new Date().toISOString().slice(0,10)+'.json',data:js});$('msg').textContent='File salvato.'}
+ $('ex').onclick=async()=>{const js=JSON.stringify(S,null,1),fn='allenamento-'+new Date().toISOString().slice(0,10)+'.json';
+  const cp=n=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin(n)}catch(e){return null}};
+  const fb=()=>{$('ta').value=js;$('ta').select();$('msg').textContent='Copia questo testo e conservalo in una nota (o mandalo a te stesso): per ripristinare incollalo qui e premi Importa.'};
+  const FSp=cp('Filesystem'),SHp=cp('Share');
+  if(FSp&&SHp){try{await FSp.writeFile({path:fn,data:js,directory:'CACHE',encoding:'utf8'});const u=await FSp.getUri({path:fn,directory:'CACHE'});
+    await SHp.share({title:'Dati Allenamento',text:'Copia dei dati di Allenamento ('+fn+')',url:u.uri,dialogTitle:'Salva i dati in…'});
+    $('msg').textContent='Nel menu che si è aperto scegli dove salvare il file: Drive, Gmail (invialo a te stesso), WhatsApp, File… Per ripristinarlo: Importa › scegli il file.';return}
+   catch(e){if(/cancel/i.test(String((e&&e.message)||e))){$('msg').textContent='Salvataggio annullato.';return}}}
+  let d=null;try{d=window.claude&&await claude.use('downloads')}catch(e){}
+  if(!d){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([js],{type:'application/json'}));a.download=fn;document.body.appendChild(a);a.click();a.remove();$('ta').value=js;$('msg').textContent='File scaricato. Se non lo trovi, copia il testo qui sopra.'}catch(e){fb()}return}
+  try{await d.save({filename:fn,data:js});$('msg').textContent='File salvato.'}
   catch(e){if(e&&e.code==='declined')$('msg').textContent='Salvataggio annullato.';else fb()}};
  $('im').onclick=()=>{try{const o=JSON.parse($('ta').value);if(!Array.isArray(o.ss))throw 0;S=Object.assign({level:0,hold:20,ss:[],body:[]},o);save();home()}catch(e){$('msg').textContent='Contenuto non valido.'}}}
 home();if(S.active){if(Date.now()-S.active.t0<6*3600e3)start(S.active.type,S.active);else{S.active=null;save()}}
