@@ -73,9 +73,10 @@ function home(){const t=nextType(),m=weekMin(),kc7=Math.round(S.ss.filter(x=>ago
 function beep(n){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();for(let i=0;i<n;i++){const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=880;g.gain.value=.2;o.start(ac.currentTime+i*.25);o.stop(ac.currentTime+i*.25+.15)}}catch(e){}
  try{navigator.vibrate&&navigator.vibrate(n*200)}catch(e){}
  try{const H=HP();if(H)for(let i=0;i<n;i++)setTimeout(()=>{try{H.vibrate({duration:500})}catch(e){}},i*450)}catch(e){}}
-const HP=()=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin('Haptics')}catch(e){return null}};
+const plug=n=>{try{const C=window.Capacitor;if(!C||!C.isNativePlatform||!C.isNativePlatform())return null;if(C.registerPlugin)return C.registerPlugin(n);if(C.Plugins&&C.Plugins[n])return C.Plugins[n];if(!C.nativePromise)return null;return new Proxy({},{get:(_,m)=>m==='then'?undefined:(o,cb)=>typeof cb==='function'?Promise.resolve(C.nativeCallback(n,m,o||{},cb)):C.nativePromise(n,m,o||{})})}catch(e){return null}};
+const HP=()=>plug('Haptics');
 
-const LN=()=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin('LocalNotifications')}catch(e){return null}};
+const LN=()=>plug('LocalNotifications');
 async function exact(force,out){const L=LN();if(!L){if(out)out("Funziona solo nell'app installata sul telefono.");return}
  try{const r=await L.checkExactNotificationSetting();const st=r&&r.exact_alarm;
   if(st==='granted'){if(out)out('Allarmi esatti: già consentiti ✓. Se gli avvisi a schermo spento arrivano in ritardo, controlla anche Impostazioni › App › Allenamento › Batteria: «Senza restrizioni».');return}
@@ -111,7 +112,7 @@ function start(type,a){const segs=a?a.segs:(type==='cardio'?cardioSegs():coreSeg
  <div class="mu" id="nn" style="text-align:center;margin-bottom:8px"></div><div class="r"><button class="s" id="lkb0" style="flex:.6">🔒 Blocca</button><button class="w" id="fin">Tieni premuto per terminare</button></div>
  <div id="lk" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;z-index:50;touch-action:none"><div id="lkb" style="position:absolute;left:16px;right:16px;bottom:28px;padding:18px;text-align:center;border-radius:14px;background:var(--card);border:2px solid var(--ac);font-weight:600">🔒 Schermo bloccato: tieni premuto qui 2 secondi per sbloccare</div></div>`;
  W.lastTouch=Date.now();hold($('fin'),1500,()=>finish(false),'Tieni premuto per terminare','Continua a tenere premuto…');hold($('lkb'),2000,lockOff,'🔒 Schermo bloccato: tieni premuto qui 2 secondi per sbloccare','Continua a tenere premuto…');$('lkb0').onclick=lockOn;W.iv=setInterval(tick,300);tick()}
-const nat=()=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&(Capacitor.registerPlugin?Capacitor.registerPlugin('BackgroundGeolocation'):Capacitor.Plugins.BackgroundGeolocation)}catch(e){return null}};
+const nat=()=>plug('BackgroundGeolocation');
 function phCheck(){if(!W||W.fin)return;const el=(Date.now()-W.t0)/1000;if(el>=W.tot)return;let c=0,i=0;for(;i<W.segs.length;i++){if(el<c+W.segs[i].s)break;c+=W.segs[i].s}if(i!==W.idx){if(W.idx>=0){beep(W.segs[i].k==='r'?2:1);if(document.hidden)nfb(i)}W.idx=i}}
 function fix(c,nt){phCheck();nt=nt||Date.now();W.fx=(W.fx||0)+1;if(W.lt)W.mg=Math.max(W.mg||0,(nt-W.lt)/1000);W.lt=nt;if(c.accuracy>50)return;W.gps=true;const q={a:c.latitude,o:c.longitude};if(!W.last){W.last=q;W.lq=nt;return}const d=hav(W.last,q),dt=Math.max(1,(nt-W.lq)/1000);if(d<Math.max(3,c.accuracy/3))return;if(d/dt>6&&(W.bad=(W.bad||0)+1)<4)return;W.bad=0;W.dist+=d;W.last=q;W.lq=nt}
 const fd=m=>m<1000?Math.round(m)+' m':(m/1000).toFixed(2)+' km';
@@ -214,7 +215,7 @@ function setup(){const ld=i=>LV[i][0]?`${LV[i][2]}× (${mmss(LV[i][0])} corsa + 
  two('r2','Cancella tutto e riparti da zero',()=>{S={level:0,hold:20,ss:[],body:[],v:2,start:new Date().toISOString()};save();home()});
  $('fl').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>$('ta').value=r.result;r.readAsText(f)};
  $('ex').onclick=async()=>{const js=JSON.stringify(S,null,1),fn='allenamento-'+new Date().toISOString().slice(0,10)+'.json';
-  const cp=n=>{try{return window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.registerPlugin(n)}catch(e){return null}};
+  const cp=n=>plug(n);
   const fb=()=>{$('ta').value=js;$('ta').select();$('msg').textContent='Copia questo testo e conservalo in una nota (o mandalo a te stesso): per ripristinare incollalo qui e premi Importa.'};
   const FSp=cp('Filesystem'),SHp=cp('Share');
   if(FSp&&SHp){try{await FSp.writeFile({path:fn,data:js,directory:'CACHE',encoding:'utf8'});const u=await FSp.getUri({path:fn,directory:'CACHE'});
